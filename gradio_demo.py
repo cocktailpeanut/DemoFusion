@@ -3,12 +3,23 @@ from pipeline_demofusion_sdxl import DemoFusionSDXLPipeline
 from gradio_imageslider import ImageSlider
 import torch
 
+if torch.cuda.is_available():
+  device = "cuda"
+  dtype = torch.float16
+elif torch.backends.mps.is_available():
+  #device = "mps"
+  device = "cpu"  # currently the 'aten::upsample_bicubic2d.out' operation is not supported on MPS
+  dtype = torch.float32
+else:
+  device = "cpu"
+  dtype = torch.float16
+
 def generate_images(prompt, negative_prompt, height, width, num_inference_steps, guidance_scale, cosine_scale_1, cosine_scale_2, cosine_scale_3, sigma, view_batch_size, stride, seed):
     model_ckpt = "stabilityai/stable-diffusion-xl-base-1.0"
-    pipe = DemoFusionSDXLPipeline.from_pretrained(model_ckpt, torch_dtype=torch.float16)
-    pipe = pipe.to("cuda")
+    pipe = DemoFusionSDXLPipeline.from_pretrained(model_ckpt, torch_dtype=dtype)
+    pipe = pipe.to(device)
 
-    generator = torch.Generator(device='cuda')
+    generator = torch.Generator(device=device)
     generator = generator.manual_seed(int(seed))
 
     images = pipe(prompt, negative_prompt=negative_prompt, generator=generator,
